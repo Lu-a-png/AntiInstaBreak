@@ -1,0 +1,6 @@
+name: AntiInstaBreak
+version: 0.0.1
+description: Tempo de quebra de blocos no gamemode sobrevivência para evitar trapaças
+api: 3.0.0
+main: AntiInstaBreak\Main
+author: Luriuker

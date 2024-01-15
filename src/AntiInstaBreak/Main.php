@@ -3,68 +3,66 @@
 namespace AntiInstaBreak;
 
 use pocketmine\event\entity\EntityEvent;
-use pocketmine\event\entity\EntityEffectAddEvent;
-use pocketmine\event\entity\EntityEffectRemoveEvent;
+use pocketmine\block\Block;
 use pocketmine\event\block\BlockBreakEvent;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerInteractEvent;
 use pocketmine\event\player\PlayerQuitEvent;
+use pocketmine\item\Item;
 use pocketmine\plugin\PluginBase;
+use pocketmine\utils\TextFormat;
 
 class Main extends PluginBase implements Listener{
 
-	/** @var float[] */
-	private $breakTimes = [];
+    /** @var int[] */
+    private $breakTimes = [];
 
-	public function onEnable() : void{
-		$this->getServer()->getPluginManager()->registerEvents($this, $this);
-	}
+    public function onEnable() : void{
+        $this->getServer()->getPluginManager()->registerEvents($this, $this);
+    }
 
-	public function onPlayerInteract(PlayerInteractEvent $event) : void{
-		if($event->getAction() === PlayerInteractEvent::LEFT_CLICK_BLOCK){
-			$this->breakTimes[$event->getPlayer()->getRawUniqueId()] = floor(microtime(true) * 20);
-		}
-	}
+    public function onPlayerInteract(PlayerInteractEvent $event) : void{
+        if($event->getAction() === PlayerInteractEvent::LEFT_CLICK_BLOCK){
+            $this->breakTimes[$event->getPlayer()->getRawUniqueId()] = floor(microtime(true) * 20);
+        }
+    }
 
-	public function onBlockBreak(BlockBreakEvent $event) : void{
-		if(!$event->getInstaBreak()){
-			do{
-				$player = $event->getPlayer();
-				if(!isset($this->breakTimes[$uuid = $player->getRawUniqueId()])){
-					$this->getLogger()->debug("Player " . $player->getName() . " break a block too fast");
-					$event->setCancelled();
-					break;
-				}
+    public function onBlockBreak(BlockBreakEvent $event) : void{
+        $player = $event->getPlayer();
+        $uuid = $player->getRawUniqueId();
 
-				$target = $event->getBlock();
-				$item = $event->getItem();
+        if(!isset($this->breakTimes[$uuid])){
+            $this->getLogger()->debug("Player " . $player->getName() . " tried to break a block too fast");
+            $event->setCancelled();
+            return;
+        }
 
-				$expectedTime = ceil($target->getBreakTime($item) * 20);
+        $target = $event->getBlock();
+        $item = $event->getItem();
 
-				if($player->hasEffect(Effect::HASTE)){
-					$expectedTime *= 1 - (0.2 * $player->getEffect(Effect::HASTE)->getEffectLevel());
-				}
+        $expectedTime = ceil($target->getBreakTime($item) * 20);
 
-				if($player->hasEffect(Effect::MINING_FATIGUE)){
-					$expectedTime *= 1 + (0.3 * $player->getEffect(Effect::MINING_FATIGUE)->getEffectLevel());
-				}
+        if($player->hasEffect(Effect::HASTE)){
+            $expectedTime *= 1 - (0.2 * $player->getEffect(Effect::HASTE)->getEffectLevel());
+        }
 
-				$expectedTime -= 1; //1 tick compensation
+        if($player->hasEffect(Effect::MINING_FATIGUE)){
+            $expectedTime *= 1 + (0.3 * $player->getEffect(Effect::MINING_FATIGUE)->getEffectLevel());
+        }
 
-				$actualTime = ceil(microtime(true) * 20) - $this->breakTimes[$uuid = $player->getRawUniqueId()];
+        $expectedTime -= 1; //1 tick compensation
 
-				if($actualTime < $expectedTime){
-					$this->getLogger()->debug("Player " . $player->getName() . " tried to break a block too fast, expected $expectedTime ticks, got $actualTime ticks");
-					$event->setCancelled();
-					break;
-				}
+        $actualTime = ceil(microtime(true) * 20) - $this->breakTimes[$uuid];
 
-				unset($this->breakTimes[$uuid]);
-			}while(false);
-		}
-	}
+        if($actualTime < $expectedTime){
+            $this->getLogger()->debug("Player " . $player->getName() . " tried to break a block too fast, expected $expectedTime ticks, got $actualTime ticks");
+            $event->setCancelled();
+        }
 
-	public function onPlayerQuit(PlayerQuitEvent $event) : void{
-		unset($this->breakTimes[$event->getPlayer()->getRawUniqueId()]);
-	}
+        unset($this->breakTimes[$uuid]);
+    }
+
+    public function onPlayerQuit(PlayerQuitEvent $event) : void{
+        unset($this->breakTimes[$event->getPlayer()->getRawUniqueId()]);
+    }
 }

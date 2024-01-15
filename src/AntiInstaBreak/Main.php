@@ -2,7 +2,9 @@
 
 namespace AntiInstaBreak;
 
-use pocketmine\entity\Effect;
+use pocketmine\event\entity\EntityEvent;
+use pocketmine\event\entity\EntityEffectAddEvent;
+use pocketmine\event\entity\EntityEffectRemoveEvent;
 use pocketmine\event\block\BlockBreakEvent;
 use pocketmine\event\Listener;
 use pocketmine\event\player\PlayerInteractEvent;
@@ -29,7 +31,7 @@ class Main extends PluginBase implements Listener{
 			do{
 				$player = $event->getPlayer();
 				if(!isset($this->breakTimes[$uuid = $player->getRawUniqueId()])){
-					$this->getLogger()->debug("Player " . $player->getName() . " tentou quebrar um bloco sem uma ação de pausa\n Provavelmente Nuke");
+					$this->getLogger()->debug("Player " . $player->getName() . " break a block too fast");
 					$event->setCancelled();
 					break;
 				}
